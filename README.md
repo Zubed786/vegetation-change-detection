@@ -66,36 +66,59 @@ c:\projects/
 
 ---
 
-## Exact Setup Commands
+## Quick Start
 
-Ensure Python 3.11+ is installed.
+This project is a Python FastAPI application that serves the frontend and backend from the same app. The app can be run locally on Windows from the repository root.
 
+### 1. Open PowerShell in the project folder
 ```powershell
-# 1. Clone or navigate to the project directory
-cd c:\projects
-
-# 2. Install all required dependencies
-pip install fastapi uvicorn python-multipart rasterio shapely geopandas scipy numpy pillow pytest httpx einops timm torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+cd "C:\Vegetation change detection"
 ```
+
+### 2. Create and activate a virtual environment (recommended)
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Install dependencies
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+> If `python` is not recognized, use the full path to your Python installation, for example:
+> ```powershell
+> & "C:\Program Files\Python311\python.exe" -m pip install -r requirements.txt
+> ```
 
 ---
 
-## Exact Run Commands
+## Run the Application
 
-### 1. Launch the Application Server
+### Start the backend server
 ```powershell
-cd c:\projects
+cd "C:\Vegetation change detection"
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
-- Web Application: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-- Interactive API Docs (Swagger UI): [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-### 2. Run the Automated Test Suite
+Then open:
+- Web app: http://127.0.0.1:8000/
+- API docs: http://127.0.0.1:8000/docs
+- Health check: http://127.0.0.1:8000/health
+
+If port 8000 is already in use, run the same command on another port, for example:
 ```powershell
-cd c:\projects
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001
+```
+
+### Run the automated tests
+```powershell
+cd "C:\Vegetation change detection"
 python -m pytest tests/ -v
 ```
-All **33 automated tests** cover NDVI formulas, nodata/NaN handling, zero denominators, gain/loss logic, region attribute constraints, geospatial CRS area, GSD parsing, 4 query intents, ChangeFormerV6 integration, and API endpoints.
+
+All automated tests cover NDVI formulas, nodata/NaN handling, zero denominators, gain/loss logic, region attribute constraints, geospatial CRS area, GSD parsing, query interpretation, ChangeFormerV6 integration, and API endpoints.
 
 ---
 
