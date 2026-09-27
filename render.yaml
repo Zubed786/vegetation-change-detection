@@ -1,0 +1,17 @@
+# render.yaml – Render Blueprint
+# Push this repo to GitHub, then connect to Render → New Blueprint → link the repo.
+services:
+  - type: web
+    name: vegetation-change-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free                      # or 'starter' for persistent disk / more RAM
+    region: oregon                  # closest free-tier region
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "10000"
+    disk:                           # Persistent disk for /app/outputs (starter+ only)
+      name: outputs-disk
+      mountPath: /app/outputs
+      sizeGB: 1

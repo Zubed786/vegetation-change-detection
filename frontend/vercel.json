@@ -1,0 +1,37 @@
+{
+  "rewrites": [
+    {
+      "source": "/analyze",
+      "destination": "https://vegetation-change-api.onrender.com/analyze"
+    },
+    {
+      "source": "/health",
+      "destination": "https://vegetation-change-api.onrender.com/health"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://vegetation-change-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/data/:path*",
+      "destination": "https://vegetation-change-api.onrender.com/data/:path*"
+    },
+    {
+      "source": "/outputs/:path*",
+      "destination": "https://vegetation-change-api.onrender.com/outputs/:path*"
+    },
+    {
+      "source": "/static/:path*",
+      "destination": "/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    }
+  ]
+}

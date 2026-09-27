@@ -1,0 +1,21 @@
+# Files/dirs to exclude from Docker build context
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.venv
+.agents
+.git
+graphify-out
+*.egg-info
+docs/
+tests/
+outputs/
+*.md
+!backend/**
+!changeformer_repo/**
+!cdvqa_repo/**
+!checkpoints/**
+!data/**
+!frontend/**
+!requirements.txt

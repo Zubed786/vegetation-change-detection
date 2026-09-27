@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bi-Temporal Vegetation & Remote Sensing Change Analysis Platform</title>
+  <meta name="description" content="AI-assisted bi-temporal satellite change analysis using ChangeFormerV6 and Sentinel-2 multispectral NDVI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-branding">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="header-title">Bi-Temporal Vegetation Change Analysis</h1>
+          <p class="header-subtitle">ChangeFormerV6 Deep Learning &bull; Sentinel-2 NDVI &bull; CDVQA Remote Sensing</p>
+        </div>
+      </div>
+      <div class="header-status">
+        <span class="badge badge-pulse" id="modelBadge">ChangeFormerV6: Ready (CPU)</span>
+        <span class="badge badge-secondary" id="datasetBadge">CDVQA: 6,400 Samples</span>
+      </div>
+    </header>
+
+    <!-- Controls & Inputs Bar -->
+    <section class="controls-panel">
+      <!-- Quick Demo Selector -->
+      <div class="demo-selector-row">
+        <span class="selector-label">Load Dataset Pair:</span>
+        <button class="btn btn-sm btn-outline active" id="btnLoadS2">Sentinel-2 Multispectral (10m GeoTIFF)</button>
+        <button class="btn btn-sm btn-outline" id="btnLoadCDVQA">CDVQA / SECOND Optical Pair</button>
+        <span class="mode-tag" id="currentModeTag">Mode: Sentinel-2 Multispectral</span>
+      </div>
+
+      <div class="input-grid">
+        <!-- T1 Upload -->
+        <div class="upload-card" id="cardT1">
+          <div class="upload-header">
+            <span class="upload-tag">T1 Image (Pre-Change)</span>
+            <span class="file-name" id="labelT1">sentinel2_t1.tif</span>
+          </div>
+          <div class="dropzone" id="dropzoneT1">
+            <input type="file" id="fileT1" accept=".tif,.tiff,.png,.jpg,.jpeg,image/tiff,image/geotiff,image/png,image/jpeg">
+            <div class="drop-content" id="dropContentT1">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <p>Drag & Drop or <span class="browse-link">Browse T1</span> (.tif, .png)</p>
+            </div>
+            <img class="upload-thumb hidden" id="thumbT1" alt="T1 Thumbnail">
+            <div class="tiff-badge hidden" id="tiffBadgeT1">
+              <span>GeoTIFF / TIFF</span>
+              <span class="tiff-badge-sub" id="tiffSubT1">Ready for analysis</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- T2 Upload -->
+        <div class="upload-card" id="cardT2">
+          <div class="upload-header">
+            <span class="upload-tag">T2 Image (Post-Change)</span>
+            <span class="file-name" id="labelT2">sentinel2_t2.tif</span>
+          </div>
+          <div class="dropzone" id="dropzoneT2">
+            <input type="file" id="fileT2" accept=".tif,.tiff,.png,.jpg,.jpeg,image/tiff,image/geotiff,image/png,image/jpeg">
+            <div class="drop-content" id="dropContentT2">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <p>Drag & Drop or <span class="browse-link">Browse T2</span> (.tif, .png)</p>
+            </div>
+            <img class="upload-thumb hidden" id="thumbT2" alt="T2 Thumbnail">
+            <div class="tiff-badge hidden" id="tiffBadgeT2">
+              <span>GeoTIFF / TIFF</span>
+              <span class="tiff-badge-sub" id="tiffSubT2">Ready for analysis</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Query and Execution Card -->
+        <div class="query-card">
+          <label for="queryInput" class="query-label">Natural-Language Query</label>
+          <div class="query-input-wrapper">
+            <input type="text" id="queryInput" value="Where has vegetation been lost?" placeholder="Ask about vegetation loss, gain, or quantitative statistics...">
+            <button class="btn btn-primary" id="btnRunAnalysis">
+              <span class="btn-text">Analyze Change</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </button>
+          </div>
+          <!-- Quick Question Chips -->
+          <div class="chip-container">
+            <span class="chip-label">Quick Queries:</span>
+            <button class="chip active" data-query="Where has vegetation been lost?">Where has vegetation been lost?</button>
+            <button class="chip" data-query="Where has vegetation increased?">Where has vegetation increased?</button>
+            <button class="chip" data-query="How much vegetation changed?">How much vegetation changed?</button>
+            <button class="chip" data-query="What changed in vegetation?">What changed in vegetation?</button>
+            <button class="chip" data-query="What percentage of vegetation was lost?">What percentage was lost?</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress Steps Modal / Banner -->
+    <div class="progress-banner hidden" id="progressBanner">
+      <div class="progress-header">
+        <span class="spinner"></span>
+        <span class="progress-status-text" id="progressStatusText">Validating images...</span>
+      </div>
+      <div class="progress-steps-list" id="progressStepsList">
+        <div class="pstep" id="step-validate">Validating images...</div>
+        <div class="pstep" id="step-query">Interpreting query...</div>
+        <div class="pstep" id="step-cf">Running ChangeFormerV6...</div>
+        <div class="pstep" id="step-ndvi">Calculating NDVI...</div>
+        <div class="pstep" id="step-regions">Extracting vegetation regions...</div>
+        <div class="pstep" id="step-gainloss">Detecting vegetation gain/loss...</div>
+        <div class="pstep" id="step-stats">Calculating statistics...</div>
+        <div class="pstep" id="step-visuals">Preparing visual results...</div>
+        <div class="pstep" id="step-explain">Generating explanation...</div>
+      </div>
+    </div>
+
+    <!-- Error Banner -->
+    <div class="error-banner hidden" id="errorBanner">
+      <div class="error-icon">&excl;</div>
+      <div class="error-msg" id="errorMessage">Error text</div>
+      <button class="error-close" id="btnCloseError">&times;</button>
+    </div>
+
+    <!-- Large Image Viewer -->
+    <section class="viewer-section">
+      <div class="viewer-toolbar">
+        <div class="viewer-tabs">
+          <button class="tab-btn" id="tabT1">Original T1</button>
+          <button class="tab-btn" id="tabT2">Original T2</button>
+          <button class="tab-btn active" id="tabChanges">Detected Changes</button>
+          <button class="tab-btn" id="tabVegT1" title="View green vegetation at T1">Vegetation T1</button>
+          <button class="tab-btn" id="tabVegT2" title="View green vegetation at T2">Vegetation T2</button>
+          <button class="tab-btn" id="tabLoss" title="Isolate vegetation loss">Vegetation Loss</button>
+          <button class="tab-btn" id="tabGain" title="Isolate vegetation gain">Vegetation Gain</button>
+        </div>
+
+        <div class="viewer-controls">
+          <div class="region-filter-wrapper">
+            <span class="filter-label">Boxes:</span>
+            <div class="filter-btn-group">
+              <button class="btn-filter active" id="filterAll" data-filter="all" title="Show all bounding boxes">All</button>
+              <button class="btn-filter" id="filterLoss" data-filter="loss" title="Show only vegetation loss boxes">Loss</button>
+              <button class="btn-filter" id="filterGain" data-filter="gain" title="Show only vegetation gain boxes">Gain</button>
+              <button class="btn-filter" id="filterSurface" data-filter="surface" title="Show only surface change boxes">Surface</button>
+              <button class="btn-filter" id="filterNone" data-filter="none" title="Hide all bounding boxes">None</button>
+            </div>
+          </div>
+
+          <label class="overlay-opacity-label">
+            Overlay Opacity:
+            <input type="range" id="sliderOpacity" min="0" max="100" value="65">
+            <span id="labelOpacity">65%</span>
+          </label>
+          <button class="btn btn-sm btn-icon" id="btnZoomIn" title="Zoom In">+</button>
+          <button class="btn btn-sm btn-icon" id="btnZoomOut" title="Zoom Out">&minus;</button>
+          <button class="btn btn-sm btn-icon" id="btnResetZoom" title="Reset View">&#x21bb;</button>
+        </div>
+      </div>
+
+      <div class="viewer-viewport" id="viewport">
+        <div class="image-stage" id="imageStage">
+          <!-- Layer 1: Base T1 / T2 / Preview -->
+          <img id="viewImgBase" class="view-image" alt="Base Remote Sensing Image">
+          <!-- Layer 2: Overlay Image -->
+          <img id="viewImgOverlay" class="view-image overlay-layer" alt="Change Overlay">
+          <!-- Layer 3: Interactive Vector Polygon Overlay -->
+          <svg id="regionSvgOverlay" class="region-svg-layer"></svg>
+        </div>
+
+        <!-- Region Inspector Popup on Click -->
+        <div class="region-popup hidden" id="regionPopup">
+          <div class="popup-header">
+            <span class="popup-title" id="popTitle">Region #1</span>
+            <button class="popup-close" id="btnClosePopup">&times;</button>
+          </div>
+          <div class="popup-body">
+            <div class="pop-row"><span class="pop-lbl">Type:</span> <span class="pop-val badge-pop" id="popType">VEGETATION_LOSS</span></div>
+            <div class="pop-row"><span class="pop-lbl">Physical Area:</span> <span class="pop-val" id="popArea">1.24 ha</span></div>
+            <div class="pop-row"><span class="pop-lbl">Pixel Count:</span> <span class="pop-val" id="popPixels">124 px</span></div>
+            <div class="pop-row"><span class="pop-lbl">T1 Status:</span> <span class="pop-val" id="popT1">Vegetation</span></div>
+            <div class="pop-row"><span class="pop-lbl">T2 Status:</span> <span class="pop-val" id="popT2">Non-Vegetation</span></div>
+            <div class="pop-row"><span class="pop-lbl">Centroid:</span> <span class="pop-val" id="popCentroid">(145, 82)</span></div>
+          </div>
+        </div>
+
+        <!-- Map Legend -->
+        <div class="viewer-legend">
+          <div class="legend-item" id="legLoss">
+            <span class="legend-swatch swatch-loss"></span>
+            <span>Vegetation Loss</span>
+          </div>
+          <div class="legend-item" id="legGain">
+            <span class="legend-swatch swatch-gain"></span>
+            <span>Vegetation Gain</span>
+          </div>
+          <div class="legend-item" id="legSurface">
+            <span class="legend-swatch swatch-surface"></span>
+            <span>Surface Change</span>
+          </div>
+          <div class="legend-item" id="legVeg">
+            <span class="legend-swatch swatch-veg"></span>
+            <span>Vegetation Mask</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Dashboard: Statistics, AI Explanation, Evidence & Confidence -->
+    <section class="dashboard-grid">
+      <!-- 1. Statistics Card -->
+      <div class="dash-card">
+        <div class="card-header">
+          <div class="card-title-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 20V10M12 20V4M6 20v-6"/>
+            </svg>
+          </div>
+          <h2>Quantitative Statistics</h2>
+          <span class="metric-unit-badge" id="statsUnitBadge">hectares (ha)</span>
+        </div>
+        <div class="card-content">
+          <div class="stats-kpi-grid">
+            <div class="kpi-box">
+              <span class="kpi-label">T1 Vegetation Area</span>
+              <span class="kpi-val" id="statT1Veg">429.17 ha</span>
+              <span class="kpi-sub" id="statT1Sub">42,917 pixels</span>
+            </div>
+            <div class="kpi-box">
+              <span class="kpi-label">T2 Vegetation Area</span>
+              <span class="kpi-val" id="statT2Veg">290.23 ha</span>
+              <span class="kpi-sub" id="statT2Sub">29,023 pixels</span>
+            </div>
+            <div class="kpi-box kpi-loss">
+              <span class="kpi-label">Vegetation Loss</span>
+              <span class="kpi-val" id="statLossArea">12.31 ha</span>
+              <span class="kpi-sub" id="statLossCount">10 regions</span>
+            </div>
+            <div class="kpi-box kpi-gain">
+              <span class="kpi-label">Vegetation Gain</span>
+              <span class="kpi-val" id="statGainArea">0.00 ha</span>
+              <span class="kpi-sub" id="statGainCount">0 regions</span>
+            </div>
+            <div class="kpi-box">
+              <span class="kpi-label">Net Vegetation Change</span>
+              <span class="kpi-val text-loss" id="statNetChange">-138.94 ha</span>
+              <span class="kpi-sub" id="statNetSub">T2 - T1 vegetation</span>
+            </div>
+            <div class="kpi-box">
+              <span class="kpi-label">Percentage Change</span>
+              <span class="kpi-val text-loss" id="statPctChange">-32.37%</span>
+              <span class="kpi-sub">Relative to T1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. AI Explanation Card -->
+      <div class="dash-card">
+        <div class="card-header">
+          <div class="card-title-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h2>Natural-Language Explanation</h2>
+          <span class="intent-badge" id="intentBadge">Intent: VEGETATION_LOSS</span>
+        </div>
+        <div class="card-content">
+          <div class="explanation-box" id="explanationText">
+            A total of 10 vegetation loss regions were detected, accounting for 12.31 hectares of lost vegetation. Total vegetation area decreased from 429.17 hectares at T1 to 290.23 hectares at T2 (net change of -138.94 hectares, -32.37%).
+          </div>
+          <div class="explanation-attribution">
+            <span>&check; 100% Grounded in Verified Backend Computations</span>
+            <span class="text-muted">Zero Hallucinations Guarantee</span>
+          </div>
+
+          <!-- Download / Export Assets -->
+          <div class="artifact-links">
+            <span class="artifact-label">Export Artifacts:</span>
+            <a href="#" id="linkGeoJson" class="btn btn-xs btn-outline" download>change_regions.geojson</a>
+            <a href="#" id="linkAnalysisJson" class="btn btn-xs btn-outline" download>analysis.json</a>
+            <a href="#" id="linkChangeMask" class="btn btn-xs btn-outline" download>change_mask.tif</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Evidence & Confidence Card -->
+      <div class="dash-card">
+        <div class="card-header">
+          <div class="card-title-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h2>Evidence & Confidence</h2>
+          <span class="confidence-gauge-badge badge-success" id="confTierBadge">HIGH (98%)</span>
+        </div>
+        <div class="card-content">
+          <!-- Confidence Gauge Breakdown -->
+          <div class="conf-breakdown">
+            <div class="conf-meter-wrapper">
+              <div class="conf-meter-bar" id="confMeterBar" style="width: 98%;"></div>
+            </div>
+            <p class="conf-explanation-text" id="confExplanation">
+              Analysis confidence is assessed at 98% (HIGH confidence). Strongest supporting factors: Image Compatibility, Metadata Quality, Valid Pixel Coverage, Model Execution.
+            </p>
+          </div>
+
+          <!-- Supporting Evidence List -->
+          <div class="evidence-list" id="evidenceList">
+            <div class="evidence-item">
+              <span class="ev-key">Change Detection Engine:</span>
+              <span class="ev-val" id="evModel">ChangeFormerV6 (LEVIR-CD checkpoint) executed on cpu</span>
+            </div>
+            <div class="evidence-item">
+              <span class="ev-key">Valid Pixel Coverage:</span>
+              <span class="ev-val" id="evCoverage">T1: 100.0%, T2: 100.0%</span>
+            </div>
+            <div class="evidence-item">
+              <span class="ev-key">Spatial Metric Basis:</span>
+              <span class="ev-val" id="evSpatial">EPSG:32632 (Projected CRS)</span>
+            </div>
+            <div class="evidence-item">
+              <span class="ev-key">Detected Loss Regions:</span>
+              <span class="ev-val" id="evLoss">10 regions (12.31 hectares)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
