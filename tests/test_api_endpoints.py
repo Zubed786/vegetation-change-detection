@@ -50,9 +50,9 @@ def test_api_cdvqa_samples(client):
     assert len(data["samples"]) > 0
 
 
-def test_api_analyze_sentinel2_pair(client):
-    s1_path = Path(r"c:\projects\data\sentinel2_t1.tif")
-    s2_path = Path(r"c:\projects\data\sentinel2_t2.tif")
+    project_root = Path(__file__).resolve().parent.parent
+    s1_path = project_root / "data" / "sentinel2_t1.tif"
+    s2_path = project_root / "data" / "sentinel2_t2.tif"
 
     if not s1_path.exists() or not s2_path.exists():
         pytest.skip("Sample Sentinel-2 rasters not found.")

@@ -1,8 +1,19 @@
 /**
- * Bi-Temporal Vegetation & Remote Sensing Change Analysis Client Application.
- * Handles interactive layer switching, pan/zoom, region vector overlays,
- * sample pair loading, execution progress tracking, and dynamic UI updates.
+ * Dynamic API Base URL resolution:
+ * - Empty string "" when served same-origin by FastAPI backend (local or Docker container)
+ * - Configurable via localStorage.getItem("API_BACKEND_URL") or window.API_BASE_URL when frontend is hosted separately (e.g. Vercel)
  */
+function getApiBase() {
+  const custom = localStorage.getItem("API_BACKEND_URL") || window.API_BASE_URL;
+  if (custom) return custom.trim().replace(/\/+$/, "");
+  return "";
+}
+
+function apiUrl(endpoint) {
+  const base = getApiBase();
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+  return base ? `${base}${cleanEndpoint}` : cleanEndpoint;
+}
 
 // State
 const state = {
@@ -30,6 +41,8 @@ const state = {
 
 // DOM Elements
 const el = {
+  modelBadge: document.getElementById("modelBadge"),
+  btnApiConfig: document.getElementById("btnApiConfig"),
   btnLoadS2: document.getElementById("btnLoadS2"),
   btnLoadCDVQA: document.getElementById("btnLoadCDVQA"),
   currentModeTag: document.getElementById("currentModeTag"),
@@ -122,10 +135,51 @@ const el = {
 // Initial Setup
 document.addEventListener("DOMContentLoaded", () => {
   initEventListeners();
+  checkBackendHealth();
   loadSampleMode("sentinel2_demo");
 });
 
+async function checkBackendHealth() {
+  try {
+    const res = await fetch(apiUrl("/health"));
+    if (res.ok) {
+      const d = await res.json();
+      const dev = d.inference_device ? d.inference_device.toUpperCase() : "CPU";
+      el.modelBadge.innerText = `ChangeFormerV6: Ready (${dev})`;
+      const base = getApiBase();
+      el.btnApiConfig.innerText = base ? "API: Remote 🟢" : "API: Connected 🟢";
+      el.btnApiConfig.style.borderColor = "rgba(52, 199, 89, 0.6)";
+      el.btnApiConfig.style.color = "#34C759";
+    } else {
+      throw new Error("HTTP " + res.status);
+    }
+  } catch (e) {
+    el.modelBadge.innerText = "ChangeFormerV6: Disconnected";
+    el.btnApiConfig.innerText = "API: Offline 🟡";
+    el.btnApiConfig.style.borderColor = "rgba(255, 149, 0, 0.6)";
+    el.btnApiConfig.style.color = "#FF9500";
+  }
+}
+
 function initEventListeners() {
+  // API URL config button
+  if (el.btnApiConfig) {
+    el.btnApiConfig.addEventListener("click", () => {
+      const current = getApiBase();
+      const promptMsg = "Enter Backend API URL (e.g., https://vegetation-change-api.onrender.com)\nLeave empty to use default (same-origin):";
+      const newVal = prompt(promptMsg, current);
+      if (newVal !== null) {
+        if (newVal.trim()) {
+          localStorage.setItem("API_BACKEND_URL", newVal.trim());
+        } else {
+          localStorage.removeItem("API_BACKEND_URL");
+        }
+        checkBackendHealth();
+        loadSampleMode(state.selectedSample);
+      }
+    });
+  }
+
   // Mode selection buttons
   el.btnLoadS2.addEventListener("click", () => loadSampleMode("sentinel2_demo"));
   el.btnLoadCDVQA.addEventListener("click", () => loadSampleMode("cdvqa_demo"));
@@ -203,8 +257,8 @@ async function loadSampleMode(sampleId) {
 
     // Fetch existing sample blobs
     try {
-      const b1 = await fetch("/data/sentinel2_t1.tif").then((r) => r.blob()).catch(() => null);
-      const b2 = await fetch("/data/sentinel2_t2.tif").then((r) => r.blob()).catch(() => null);
+      const b1 = await fetch(apiUrl("/data/sentinel2_t1.tif")).then((r) => r.blob()).catch(() => null);
+      const b2 = await fetch(apiUrl("/data/sentinel2_t2.tif")).then((r) => r.blob()).catch(() => null);
       if (b1) state.t1File = new File([b1], "sentinel2_t1.tif", { type: "image/tiff" });
       if (b2) state.t2File = new File([b2], "sentinel2_t2.tif", { type: "image/tiff" });
     } catch (e) {}
@@ -224,8 +278,8 @@ async function loadSampleMode(sampleId) {
     el.legSurface.classList.remove("hidden");
 
     try {
-      const b1 = await fetch("/data/cdvqa_pair1_t1.png").then((r) => r.blob()).catch(() => null);
-      const b2 = await fetch("/data/cdvqa_pair1_t2.png").then((r) => r.blob()).catch(() => null);
+      const b1 = await fetch(apiUrl("/data/cdvqa_pair1_t1.png")).then((r) => r.blob()).catch(() => null);
+      const b2 = await fetch(apiUrl("/data/cdvqa_pair1_t2.png")).then((r) => r.blob()).catch(() => null);
       if (b1) state.t1File = new File([b1], "02180.png", { type: "image/png" });
       if (b2) state.t2File = new File([b2], "02180.png", { type: "image/png" });
     } catch (e) {}
@@ -399,21 +453,23 @@ async function runAnalysis() {
   if (state.t1File) {
     formData.append("image_t1", state.t1File);
   } else {
-    const sPath = state.selectedSample === "sentinel2_demo" ? "/data/sentinel2_t1.tif" : "/data/cdvqa_pair1_t1.png";
+    const fn1 = state.selectedSample === "sentinel2_demo" ? "sentinel2_t1.tif" : "cdvqa_pair1_t1.png";
+    const sPath = apiUrl(`/data/${fn1}`);
     const b = await fetch(sPath).then((r) => r.blob());
-    formData.append("image_t1", b, "sample_t1");
+    formData.append("image_t1", b, fn1);
   }
 
   if (state.t2File) {
     formData.append("image_t2", state.t2File);
   } else {
-    const sPath = state.selectedSample === "sentinel2_demo" ? "/data/sentinel2_t2.tif" : "/data/cdvqa_pair1_t2.png";
+    const fn2 = state.selectedSample === "sentinel2_demo" ? "sentinel2_t2.tif" : "cdvqa_pair1_t2.png";
+    const sPath = apiUrl(`/data/${fn2}`);
     const b = await fetch(sPath).then((r) => r.blob());
-    formData.append("image_t2", b, "sample_t2");
+    formData.append("image_t2", b, fn2);
   }
 
   try {
-    const resp = await fetch("/analyze", {
+    const resp = await fetch(apiUrl("/analyze"), {
       method: "POST",
       body: formData,
     });
@@ -452,13 +508,13 @@ function renderAnalysisResults(data) {
   const isMultispectral = data.mode === "sentinel2_multispectral";
 
   // Visuals URLs
-  state.t1Url = `/${data.visual_outputs.t1_original}`;
-  state.t2Url = `/${data.visual_outputs.t2_original}`;
-  state.overlayUrl = `/${data.visual_outputs.change_highlighted}`;
-  state.t1VegUrl = data.visual_outputs.t1_vegetation ? `/${data.visual_outputs.t1_vegetation}` : null;
-  state.t2VegUrl = data.visual_outputs.t2_vegetation ? `/${data.visual_outputs.t2_vegetation}` : null;
-  state.lossUrl = data.visual_outputs.vegetation_loss_preview ? `/${data.visual_outputs.vegetation_loss_preview}` : null;
-  state.gainUrl = data.visual_outputs.vegetation_gain_preview ? `/${data.visual_outputs.vegetation_gain_preview}` : null;
+  state.t1Url = apiUrl(`/${data.visual_outputs.t1_original}`);
+  state.t2Url = apiUrl(`/${data.visual_outputs.t2_original}`);
+  state.overlayUrl = apiUrl(`/${data.visual_outputs.change_highlighted}`);
+  state.t1VegUrl = data.visual_outputs.t1_vegetation ? apiUrl(`/${data.visual_outputs.t1_vegetation}`) : null;
+  state.t2VegUrl = data.visual_outputs.t2_vegetation ? apiUrl(`/${data.visual_outputs.t2_vegetation}`) : null;
+  state.lossUrl = data.visual_outputs.vegetation_loss_preview ? apiUrl(`/${data.visual_outputs.vegetation_loss_preview}`) : null;
+  state.gainUrl = data.visual_outputs.vegetation_gain_preview ? apiUrl(`/${data.visual_outputs.vegetation_gain_preview}`) : null;
   state.regions = data.regions || [];
 
   // Toggle layer button visibility depending on artifact availability
@@ -534,13 +590,13 @@ function renderAnalysisResults(data) {
 
   // Artifact links
   if (data.visual_outputs.change_regions_geojson) {
-    el.linkGeoJson.href = `/${data.visual_outputs.change_regions_geojson}`;
+    el.linkGeoJson.href = apiUrl(`/${data.visual_outputs.change_regions_geojson}`);
   }
   if (data.visual_outputs.analysis_json) {
-    el.linkAnalysisJson.href = `/${data.visual_outputs.analysis_json}`;
+    el.linkAnalysisJson.href = apiUrl(`/${data.visual_outputs.analysis_json}`);
   }
   if (data.visual_outputs.change_mask) {
-    el.linkChangeMask.href = `/${data.visual_outputs.change_mask}`;
+    el.linkChangeMask.href = apiUrl(`/${data.visual_outputs.change_mask}`);
   }
 
   // Evidence & Confidence
